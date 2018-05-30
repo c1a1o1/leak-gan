@@ -272,7 +272,7 @@ def parse_arguments():
                         help="Dimensionality of input space")
     parser.add_argument("--n_classes", action="store", type=int, default=3,
                         help="Number of classes for classification")
-    parser.add_argument("--data_gen_bias", action="store", type=int, default=100,
+    parser.add_argument("--data_gen_bias", action="store", type=int, default=30,
                         help="How far apart data clusters should be")
     parser.add_argument("--learning_rate", action="store", type=float, default=0.1,
                         help="Learning rate for gradient descent")
@@ -280,7 +280,7 @@ def parse_arguments():
                         help="Depth of the Network")
     parser.add_argument("--max_epochs", action="store", type=int, default=300,
                         help="Max number of epochs for gradient descent")
-    parser.add_argument("--widths", action="store", default=[32, 32, 32], nargs="*",
+    parser.add_argument("--widths", action="store", default=[32, 24, 16], nargs="*",
                         help="List of network widths. Note: [len(widths) == depth]")
     parser.add_argument("--validate", action="store", type=bool, default=True,
                         help="Boolean for validation")
@@ -321,7 +321,6 @@ def main(args):
             depth=args.depth,
             widths=args.widths,
             learning_rate=args.learning_rate,
-            activation_fn=lambda k: k
          )
 
     # test train method
