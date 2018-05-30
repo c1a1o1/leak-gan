@@ -192,7 +192,7 @@ def calc_accuracy(network, x, y):
 
 def train_network(network, dat_x, dat_y, val_x=None, val_y=None,
                   test_x=None, test_y=None,
-                  conv_thresh=1e-5, max_epochs=500, cv=False):
+                  conv_thresh=1e-4, max_epochs=500, cv=False):
     """
     train the Neural network using the given synthetic data
     :param network: Neural Network object
@@ -231,8 +231,8 @@ def train_network(network, dat_x, dat_y, val_x=None, val_y=None,
         print("Epoch: %d  Loss: %.3f" % (epoch, curr_loss))
 
         if cv:
-            val_loss = network.calc_loss(v_x, v_y)
-            print("Validation Accuracy: %.3f\n" % val_loss)
+            val_acc = calc_accuracy(network, v_x, v_y)
+            print("Validation Accuracy: %.3f\n" % val_acc)
 
         # perform backpropagation and weight update
         network.backward()
@@ -252,7 +252,7 @@ def train_network(network, dat_x, dat_y, val_x=None, val_y=None,
 
     # Final test accuracy:
     if test_x is not None and test_y is not None:
-        print("Obtained Test set Loss: %.3f" % network.calc_loss(t_x, t_y))
+        print("Obtained Test set accuracy: %.3f" % calc_accuracy(network, t_x, t_y))
 
 
 def parse_arguments():
@@ -264,7 +264,7 @@ def parse_arguments():
 
     parser.add_argument("--n_samples", action="store", type=int, default=30000,
                         help="Number of samples of synthetic data to be generated")
-    parser.add_argument("--val_samples", action="store", type=int, default=100,
+    parser.add_argument("--val_samples", action="store", type=int, default=500,
                         help="Number of validation samples")
     parser.add_argument("--test_samples", action="store", type=int, default=3000,
                         help="Number of test samples")
@@ -272,6 +272,20 @@ def parse_arguments():
                         help="Dimensionality of input space")
     parser.add_argument("--n_classes", action="store", type=int, default=3,
                         help="Number of classes for classification")
+    parser.add_argument("--data_gen_bias", action="store", type=int, default=100,
+                        help="How far apart data clusters should be")
+    parser.add_argument("--learning_rate", action="store", type=float, default=0.1,
+                        help="Learning rate for gradient descent")
+    parser.add_argument("--depth", action="store", type=int, default=3,
+                        help="Depth of the Network")
+    parser.add_argument("--max_epochs", action="store", type=int, default=300,
+                        help="Max number of epochs for gradient descent")
+    parser.add_argument("--widths", action="store", default=[32, 32, 32], nargs="*",
+                        help="List of network widths. Note: [len(widths) == depth]")
+    parser.add_argument("--validate", action="store", type=bool, default=True,
+                        help="Boolean for validation")
+    parser.add_argument("--convergence_threshold", action="store", type=float, default=1e-4,
+                        help="Convergence threshold for gradient descent")
 
     args = parser.parse_args()
 
@@ -287,16 +301,35 @@ def main(args):
 
     # generate some random data samples
     x, y = generate_random_data_sample(args.n_samples,
-                                       args.input_dims, args.n_classes, bias=10)
-    val_x, val_y = generate_random_data_sample(args.val_samples,
-                                               args.input_dims, args.n_classes, bias=10)
-    test_x, test_y = generate_random_data_sample(args.test_samples,
-                                                 args.input_dims, args.n_classes, bias=100)
+                                       args.input_dims, args.n_classes,
+                                       bias=args.data_gen_bias)
 
-    nn = NeuralNetwork(args.input_dims, args.n_classes, learning_rate=0.1)
+    val_x, val_y = generate_random_data_sample(args.val_samples,
+                                               args.input_dims, args.n_classes,
+                                               bias=args.data_gen_bias)
+
+    test_x, test_y = generate_random_data_sample(args.test_samples,
+                                                 args.input_dims, args.n_classes,
+                                                 bias=args.data_gen_bias)
+
+    # convert widths to an integer list
+    args.widths = list(map(int, args.widths))
+
+    nn = NeuralNetwork(
+            f_dim=args.input_dims,
+            n_classes=args.n_classes,
+            depth=args.depth,
+            widths=args.widths,
+            learning_rate=args.learning_rate,
+            activation_fn=lambda k: k
+         )
 
     # test train method
-    train_network(nn, x, y, val_x, val_y, test_x, test_y, max_epochs=300)
+    train_network(nn, x, y, val_x, val_y,
+                  test_x, test_y,
+                  max_epochs=args.max_epochs,
+                  conv_thresh=args.convergence_threshold,
+                  cv=args.validate)
 
 
 if __name__ == '__main__':
