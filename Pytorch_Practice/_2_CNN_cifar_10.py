@@ -105,24 +105,6 @@ class CNN(th.nn.Module):
         return num_flat
 
 
-def parse_arguments():
-    """
-    Command line argument parser function
-    :return: args => parsed arguments
-    """
-    parser = argparse.ArgumentParser()
-
-    parser.add_argument("--batch_size", action="store", type=int, default=32,
-                        help="Batch size for Stochastic Gradient Descent")
-    parser.add_argument("--num_readers", action="store", type=int, default=3,
-                        help="Number of parallel data readers")
-    parser.add_argument("--download_data", action="store", type=bool, default=False,
-                        help="Boolean for downloading data")
-
-    args = parser.parse_args()
-    return args
-
-
 def train_network(network, train_data, conv_threshold=1e-4,
                   max_epochs=100, learning_rate=0.1, feed_back_factor=10):
     """
@@ -187,6 +169,54 @@ def train_network(network, train_data, conv_threshold=1e-4,
     print("Training complete ...")
 
 
+def evaluate_network(network, test_data):
+    """
+    evaluate the network on the given data
+    :param network: CNN object
+    :param test_data: test dataloader
+    :return: accuracy on the given data
+    """
+    correct_examples = []  # initialize to empty list
+    for data in iter(test_data):
+        imgs, labels = data
+
+        # perform inference on the images:
+        scores = network.forward(imgs).data.numpy()
+
+        corrects = np.argmax(scores, axis=-1) == labels.numpy()
+        correct_examples.extend(corrects)
+
+    return np.mean(correct_examples) * 100
+
+
+def parse_arguments():
+    """
+    Command line argument parser function
+    :return: args => parsed arguments
+    """
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument("--batch_size", action="store", type=int, default=32,
+                        help="Batch size for Stochastic Gradient Descent")
+    parser.add_argument("--num_readers", action="store", type=int, default=3,
+                        help="Number of parallel data readers")
+    parser.add_argument("--download_data", action="store", type=bool, default=False,
+                        help="Boolean for downloading data")
+    parser.add_argument("--convergence_threshold", action="store", type=float, default=1e-4,
+                        help="Convergence threshold for training the network")
+    parser.add_argument("--learning_rate", action="store", type=float, default=0.1,
+                        help="Convergence threshold for training the network")
+    parser.add_argument("--feed_back_factor", action="store", type=int, default=10,
+                        help="Number of prints per epoch")
+    parser.add_argument("--max_epochs", action="store", type=int, default=30,
+                        help="Maximum number epochs for training")
+    parser.add_argument("--evaluate_test_set", action="store", type=bool, default=True,
+                        help="Boolean for evaluating test")
+
+    args = parser.parse_args()
+    return args
+
+
 def main(args):
     """
     Main function of the script
@@ -199,13 +229,29 @@ def main(args):
     if th.cuda.is_available():
         network = network.cuda()
 
+    # obtain the data for training
     classes, train, test = setup_data(
                                 batch_size=args.batch_size,
-                                num_workers=args.num_readers
+                                num_workers=args.num_readers,
+                                download=args.download_data
                             )
 
-    train_network(network, train)
+    # train the Network
+    train_network(
+        network=network,
+        train_data=train,
+        conv_threshold=args.convergence_threshold,
+        learning_rate=args.learning_rate,
+        max_epochs=args.max_epochs,
+        feed_back_factor=args.feed_back_factor
+    )
 
+    # perform evaluation on the test dataset
+    if args.evaluate_test_set:
+        # perform evaluation on the test dataset if the flag is set
+        print("\n\nEvaluating the model performance on test set of CIFAR-10 ...")
+        accuracy = evaluate_network(network, test)
+        print("Obtained accuracy: %.3f %%" % accuracy)
 
 if __name__ == '__main__':
     main(parse_arguments())
