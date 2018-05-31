@@ -184,7 +184,7 @@ def evaluate_network(network, test_data):
     for data in iter(test_data):
         imgs, labels = data
 
-        if th.cuda.is_availabl():
+        if th.cuda.is_available():
             imgs, labels = imgs.cuda(), labels.cuda()
 
         # perform inference on the images:
@@ -259,6 +259,7 @@ def main(args):
         print("\n\nEvaluating the model performance on test set of CIFAR-10 ...")
         accuracy = evaluate_network(network, test)
         print("Obtained accuracy: %.3f %%" % accuracy)
+
 
 if __name__ == '__main__':
     main(parse_arguments())
