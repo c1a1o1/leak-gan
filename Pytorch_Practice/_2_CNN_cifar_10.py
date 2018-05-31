@@ -185,10 +185,10 @@ def evaluate_network(network, test_data):
         imgs, labels = data
 
         if th.cuda.is_available():
-            imgs, labels = imgs.cuda(), labels.cuda()
+            imgs = imgs.cuda()
 
         # perform inference on the images:
-        scores = network.forward(imgs).data.numpy()
+        scores = network.forward(imgs).cpu().data.numpy()
 
         corrects = np.argmax(scores, axis=-1) == labels.numpy()
         correct_examples.extend(corrects)
