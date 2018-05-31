@@ -139,6 +139,10 @@ def train_network(network, train_data, conv_threshold=1e-4,
             # extract images and labels from the data
             images, labels = data
 
+            # copy images and labels tensors to the GPU if cuda is available
+            if th.cuda.is_available():
+                images, labels = images.cuda(), labels.cuda()
+
             # run the network computations:
             outs = network(images)
             loss = criterion(outs, labels)
@@ -179,6 +183,9 @@ def evaluate_network(network, test_data):
     correct_examples = []  # initialize to empty list
     for data in iter(test_data):
         imgs, labels = data
+
+        if th.cuda.is_availabl():
+            imgs, labels = imgs.cuda(), labels.cuda()
 
         # perform inference on the images:
         scores = network.forward(imgs).data.numpy()
